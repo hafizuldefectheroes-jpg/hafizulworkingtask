@@ -60,3 +60,7 @@ Everything else in ReTask works without AI.
 The Supabase Free plan **pauses a project after 7 days with no activity**. Opening ReTask counts as activity, so daily use keeps it awake. If it ever pauses, restore it from the Supabase dashboard; no data is lost.
 
 Use **System → Copy full backup** weekly and keep the file on the Regen pendrive.
+
+## Personal workspaces
+
+Every login has its own private workspace. A new colleague starts empty and only sees their own tasks, people, documents, research and files. Admins can open any colleague's workspace from the selector in the header (or **Open workspace** in the Team panel); a yellow banner shows whose workspace you're in, and **Back to my workspace** returns you. This is enforced in the database (row-level security on `owner_id`), not just hidden in the app.

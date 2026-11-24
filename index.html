@@ -283,6 +283,10 @@ button.pri{transform:translateZ(0)}button.pri:active{transform:translateY(1px) s
 @media(max-width:860px){.kpi,.mission,.card,.kc,.rc,.bc{transform:none}.scene .orbit{width:420px;height:420px;margin:-210px 0 0 -210px}.scene .o2{display:none}.tabind{display:none}.tabs.ind .nav[aria-current=true]{background:light-dark(#fff,rgba(155,224,122,.10));box-shadow:inset 0 0 0 1px rgba(155,224,122,.38)}}
 @media(prefers-reduced-motion:reduce){.kpi,.mission,.card,.kc,.rc,.bc,.auth .box{transform:none!important}.scene{display:none}}
 
+/* ---------- workspaces ---------- */
+.wssel{width:auto;max-width:210px;min-height:34px;padding:5px 30px 5px 12px;font-size:13px;border-radius:999px}
+.wsbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:0 0 14px;padding:12px 16px;border-radius:16px;background:light-dark(#fff3cc,rgba(246,182,0,.12));border:1px solid rgba(246,182,0,.45);font-size:14px}
+.wsbar[hidden]{display:none}
 /* ---------- tutorial ---------- */
 #tourL{position:fixed;inset:0;z-index:120;display:none}#tourL.on{display:block}
 .tspot{position:fixed;border-radius:18px;box-shadow:0 0 0 9999px light-dark(rgba(8,20,14,.55),rgba(0,0,0,.72)),0 0 0 2px var(--g1),0 0 40px var(--glowS);transition:all .5s cubic-bezier(.2,.85,.25,1.05);pointer-events:none}
@@ -366,6 +370,7 @@ body.touring .aifab::after{display:none}
   <button class="nav" data-v="pendrive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="8" width="10" height="13" rx="2"/><path d="M9 8V3h6v5M10.5 5h.01M13.5 5h.01"/></svg>System<kbd>8</kbd></button>
   </nav>
   <div class="hr">
+    <select id="wsSel" class="wssel hide-m" hidden aria-label="Workspace"></select>
     <div class="sync"><i class="dot" id="dot"></i><span id="syncT">Connecting…</span></div>
     <button id="palB" class="hide-m" title="Command palette"><kbd>Ctrl K</kbd></button>
     <button id="helpB" class="hdrbtn" title="Help & tutorials (?)" aria-label="Help and tutorials">?</button>
@@ -773,7 +778,7 @@ function dPass(d){if(dsrch){const h=(d.name+' '+(d.note||'')+' '+(d.rev||'')+' '
 function docsView(){const n=docs.length,pd=docs.filter(d=>d.loc?.p).length,cl=docs.filter(d=>d.loc?.c||d.assetId).length,one=docs.filter(d=>Object.values(d.loc||{}).filter(Boolean).length+(d.assetId?1:0)<=1).length;
  $('#dk').innerHTML=[['Documents',n,'In the register',''],['On pendrive',`${pd}/${n}`,n?Math.round(pd/n*100)+'% copied':'',pd===n&&n?'ok':''],['In cloud or attached',`${cl}/${n}`,'Reachable from any device',''],['Single copy only',one,one?'One loss away from gone':'Every file has a backup',one?'warn':'ok']].map(([k,v,s,c])=>`<div class="kpi ${c}"><div class="k">${k}</div><div class="n">${v}</div><div class="s">${s}</div></div>`).join('');
  const L=docs.filter(dPass).sort((a,b)=>(a.cat||'').localeCompare(b.cat||'')||(a.name||'').localeCompare(b.name||''));
- if(!L.length){$('#dl').innerHTML=docs.length?'<div class="empty">No documents match.</div>':`<div class="panel empty"><b style="color:var(--ink)">No documents yet.</b><div>Load the ${STARTER_DOCS.length} files from your pending list (decks, Excel, quotations and Fahmi's documents) so you only need to tick where each copy is.</div><button class="pri starter" id="ldDocs">Load my starter document list</button></div>`;return}
+ if(!L.length){$('#dl').innerHTML=docs.length?'<div class="empty">No documents match.</div>':`<div class="panel empty"><b style="color:var(--ink)">No documents yet.</b><div>Load the ${STARTER_DOCS.length} files from your pending list (decks, Excel, quotations and Fahmi's documents) so you only need to tick where each copy is.</div>${me&&me.role==='admin'&&ownWs()?'<button class="pri starter" id="ldDocs">Load my starter document list</button>':''}</div>`;return}
  const groups=[...new Set(L.map(d=>d.cat||'Unsorted'))];
  $('#dl').innerHTML=groups.map(g=>`<div class="dg"><h3>${esc(g)}</h3><table class="stack"><thead><tr><th>Document</th><th>Type · rev</th><th>Kept in</th><th>Open</th><th>Date</th></tr></thead><tbody>${L.filter(d=>(d.cat||'Unsorted')===g).map(d=>{const href=d.link&&/^https:\/\//i.test(d.link)?d.link:'';return `<tr><td><button class="tt" data-dact="edit" data-id="${esc(d.id)}">${esc(d.name)}</button> ${d.conf?'<span class="conf">CONFIDENTIAL</span>':''}${d.note?`<div class="sm">${esc(d.note)}</div>`:''}</td><td class="sm">${esc(d.type||'')}${d.rev?' · '+esc(d.rev):''}</td><td><div class="locs">${LOCS.map(([k,n])=>`<button data-dact="loc" data-k="${k}" data-id="${esc(d.id)}" aria-pressed="${!!d.loc?.[k]}" title="${n}" aria-label="${n}">${k.toUpperCase()}</button>`).join('')}</div></td><td>${href?`<a class="flink" href="${esc(href)}" target="_blank" rel="noopener">Cloud link</a>`:''}${d.assetId?`${href?'<br>':''}<button class="flink" data-dact="file" data-id="${esc(d.id)}">${esc(d.fileName||'Attached file')}</button>`:''}${!href&&!d.assetId?'<span class="sm">–</span>':''}</td><td class="sm">${d.date?fmt(D(d.date)):''}</td></tr>`}).join('')}</tbody></table></div>`).join('')}
 $$('.dchip').forEach(c=>c.addEventListener('click',()=>{dfilter=c.dataset.d;$$('.dchip').forEach(x=>x.setAttribute('aria-pressed',x===c));docsView()}));
@@ -797,7 +802,7 @@ $('#d_del').addEventListener('click',()=>{const d=docs.find(x=>x.id===dEdit);if(
 /* ---------- Research & reminders ---------- */
 const RS={todo:'To research',doing:'Investigating',done:'Answered'};
 function remLabel(r){if(r.status==='done')return['Answered','ok'];if(!r.remind)return['No reminder',''];const n=diff(today(),D(r.remind));if(n<0)return[`Reminder ${-n}d overdue`,'bad'];if(n===0)return['Remind today','warn'];if(n<=3)return[`Remind in ${n}d`,'warn'];return['Remind '+fmt(D(r.remind)),'']}
-function resView(){$('#rstart').innerHTML=res.length?'':`<div class="panel" style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span class="grow">No research topics yet. Load the manual baler tying topic you asked about, with the questions to answer already listed.</span><button class="pri" id="ldRes">Load baler research topic</button></div>`;const L=res.slice().sort((a,b)=>(+a.pri-+b.pri)||(a.remind||'9').localeCompare(b.remind||'9'));
+function resView(){$('#rstart').innerHTML=res.length?'':`<div class="panel" style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span class="grow">No research topics yet. Load the manual baler tying topic you asked about, with the questions to answer already listed.</span>${me&&me.role==='admin'&&ownWs()?'<button class="pri" id="ldRes">Load baler research topic</button>':''}</div>`;const L=res.slice().sort((a,b)=>(+a.pri-+b.pri)||(a.remind||'9').localeCompare(b.remind||'9'));
  $('#rcols').innerHTML=['todo','doing','done'].map(s=>{const c=L.filter(r=>(r.status||'todo')===s);return `<div class="col" data-rcol="${s}"><h3>${RS[s]}<span class="sm">${c.length}</span></h3>${c.map(r=>{const [l,cl]=remLabel(r);return `<div class="rc"><button class="tt" data-ract="edit" data-id="${esc(r.id)}">${esc(r.title)}</button><div class="meta"><span class="pp pp${+r.pri||2}">P${+r.pri||2}</span><span class="cat">${esc(r.cat||'Other')}</span><span class="due ${cl}">${esc(l)}</span></div>${r.why?`<div class="why">${esc(r.why)}</div>`:''}${r.findings?`<div class="fd">${esc(r.findings)}</div>`:''}<div class="meta" style="justify-content:flex-end">${s!=='todo'?`<button data-ract="mv" data-to="${s==='done'?'doing':'todo'}" data-id="${esc(r.id)}" aria-label="Move back" style="min-height:30px;padding:0 8px">←</button>`:''}${s!=='done'?`<button data-ract="mv" data-to="${s==='todo'?'doing':'done'}" data-id="${esc(r.id)}" aria-label="Move forward" style="min-height:30px;padding:0 8px">→</button>`:''}</div></div>`}).join('')||'<div class="empty" style="padding:16px">Nothing here</div>'}</div>`}).join('')}
 const rwrite=r=>{const {id,...b}=r;write('research/'+id,b)};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-ract]');if(!b)return;const r=res.find(x=>x.id===b.dataset.id);if(!r)return;
@@ -879,6 +884,7 @@ How to answer:
 - Never invent technical specifications, prices, regulations or supplier facts. For technical questions give general good practice and list what to confirm with the supplier or authority.
 ${aiTools?`- You can change the cockpit with tools. When the user asks to add, create, schedule, assign, update, mark done or remind, call the tools, then confirm in one line what you did. When the user pastes a message (e.g. WhatsApp) and asks to turn it into tasks, create one task per action item.
 - Assign tasks only to existing people keys (use "me" for the user's own work). Use ISO dates (YYYY-MM-DD) in tool calls. Priority 1 = urgent.`:`- You cannot change the cockpit in this view. If asked to add or change items, list exactly what the user should add.`}
+WORKSPACE: ${ownWs()?'the user\'s own workspace':'the workspace of '+wsName()+' (the user is an admin helping them)'}.
 DATA (JSON):
 ${ctx()}`;
 function addMsg(role,html){const d=document.createElement('div');d.className='msg '+role;d.innerHTML=html;$('#msgs').append(d);$('#msgs').scrollTop=1e9;return d}
@@ -928,7 +934,7 @@ $('#briefB').addEventListener('click',async()=>{if(!sample){$('#briefO').innerHT
 function stGet(k){try{return localStorage.getItem(k)}catch(_){return null}}
 function stSet(k,v){try{localStorage.setItem(k,v)}catch(_){}}
 function renderTour(){const el=$('#tour');if(!el)return;if(stGet('ros_tour_hidden')){el.innerHTML='';return}
- const steps=[['Take the 1-minute tour',!!stGet('rt_tour_done'),()=>startTour()],['Load your documents',docs.length>0,()=>go('docs')],['Add WhatsApp numbers',PEOPLE.filter(p=>p.k!=='me'&&digits(p.ph)).length>=3,()=>go('people')],['Try Regen AI',!!stGet('ros_ai'),()=>openCop()],['Take a backup',!!meta.lastBackup,()=>go('pendrive')],['Add your colleagues',profiles.length>1,()=>{go('pendrive');setTimeout(()=>{const d=$('#teamD');if(d){d.open=true;d.scrollIntoView({behavior:'smooth'})}},100)}]];
+ const steps=[['Take the 1-minute tour',!!stGet('rt_tour_done'),()=>startTour()],...(me&&me.role==='admin'&&ownWs()?[['Load your documents',docs.length>0,()=>go('docs')]]:[]),['Add WhatsApp numbers',PEOPLE.filter(p=>p.k!=='me'&&digits(p.ph)).length>=3,()=>go('people')],['Try Regen AI',!!stGet('ros_ai'),()=>openCop()],['Take a backup',!!meta.lastBackup,()=>go('pendrive')],...(me&&me.role==='admin'?[['Add your colleagues',profiles.length>1,()=>{go('pendrive');setTimeout(()=>{const d=$('#teamD');if(d){d.open=true;d.scrollIntoView({behavior:'smooth'})}},100)}]]:[])];
  const done=steps.filter(x=>x[1]).length;if(done===steps.length){el.innerHTML='';return}
  el.innerHTML=`<div class="tour"><div class="ring" style="width:54px;height:54px"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="46" fill="none" stroke="var(--line2)" stroke-width="12"/><circle cx="55" cy="55" r="46" fill="none" stroke="#57a639" stroke-width="12" stroke-linecap="round" stroke-dasharray="${2*Math.PI*46}" stroke-dashoffset="${2*Math.PI*46*(1-done/steps.length)}"/></svg><b style="font-size:13px;color:var(--ink)">${done}/${steps.length}</b></div><div><b>Get ReTask ready</b><div class="steps" style="margin-top:8px">${steps.map((x,i)=>`<button class="stp ${x[1]?'ok':''}" data-tour="${i}"><i>${x[1]?'✓':i+1}</i>${x[0]}</button>`).join('')}</div></div><button data-tour="hide" class="sm">Hide</button></div>`;
  el.onclick=e=>{const b=e.target.closest('[data-tour]');if(!b)return;if(b.dataset.tour==='hide'){stSet('ros_tour_hidden','1');renderTour()}else steps[+b.dataset.tour][2]()}}
@@ -936,7 +942,9 @@ function renderTour(){const el=$('#tour');if(!el)return;if(stGet('ros_tour_hidde
 
 /* ================= ReTask backend: Supabase auth, data, live sync, files, AI ================= */
 const SB_URL='https://sbhsnboujwwmlsyephwj.supabase.co',SB_KEY='sb_publishable_HmDmXlWuCs5xbi0dOee2mA_48ivzSen',UDOM='users.retask.app';
-let sb=null,me=null,live=false,chan=null,profiles=[];
+let sb=null,me=null,live=false,chan=null,profiles=[],ws=null;
+const wsName=()=>{const p=profiles.find(x=>x.id===ws);return p?(p.full_name||p.username):''};
+const ownWs=()=>!!me&&ws===me.id;
 try{sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}})}catch(e){sb=null}
 const MAP={
  tasks:{tbl:'tasks',to:(id,b)=>({id,title:String(b.title||'').slice(0,300),who:b.who||'me',pri:[1,2,3].includes(+b.pri)?+b.pri:2,fmt:b.fmt||'',status:['todo','doing','done'].includes(b.status)?b.status:'todo',due:b.due||'',note:b.note||'',blocked:!!b.blocked,hc:b.hc??null,sc:b.sc??null,subs:Array.isArray(b.subs)?b.subs:[],sort:Math.round(+b.order||0)}),
@@ -948,49 +956,60 @@ const MAP={
  research:{tbl:'research',to:(id,b)=>({id,title:b.title||'',cat:b.cat||'Other',pri:[1,2,3].includes(+b.pri)?+b.pri:2,remind:b.remind||'',status:['todo','doing','done'].includes(b.status)?b.status:'todo',why:b.why||'',findings:b.findings||'',links:b.links||''}),
   from:r=>({id:r.id,title:r.title,cat:r.cat,pri:r.pri,remind:r.remind,status:r.status,why:r.why,findings:r.findings,links:r.links})}
 };
-const canEdit=()=>!!me&&me.role!=='viewer';
+const canEdit=()=>!!me&&(me.role==='admin'||(me.role!=='viewer'&&ownWs()));
 function write(path,data,del){
  if(!sb||!me){toast('Not signed in.',null);return}
  if(!canEdit()){toast('You have view-only access. Ask an admin to make you an Editor.',null);return}
  const i=path.indexOf('/'),col=path.slice(0,i),id=path.slice(i+1);let job;
- if(col==='config')job=()=>del?sb.from('settings').delete().eq('key',id):sb.from('settings').upsert({key:id,value:data});
+ const owner=ws;if(col==='config')job=()=>del?sb.from('settings').delete().eq('owner_id',owner).eq('key',id):sb.from('settings').upsert({owner_id:owner,key:id,value:data},{onConflict:'owner_id,key'});
  else if(col==='log')return;
- else{const m=MAP[col];if(!m)return;job=()=>del?sb.from(m.tbl).delete().eq('id',id):sb.from(m.tbl).upsert(m.to(id,data))}
+ else{const m=MAP[col];if(!m)return;job=()=>del?sb.from(m.tbl).delete().eq('owner_id',owner).eq('id',id):sb.from(m.tbl).upsert({...m.to(id,data),owner_id:owner},{onConflict:'owner_id,id'})}
  inflight++;syncUI();
  q[path]=(q[path]||Promise.resolve()).then(async()=>{const {error}=await job();if(error)throw error}).catch(e=>toast('Could not save: '+(e&&e.message||e),null)).finally(()=>{inflight--;syncUI()});
  return q[path]}
 function log(m){const who=me?(me.full_name||me.username):'';logs.unshift({ts:Date.now(),m:who?`${who}: ${m}`:m});logs=logs.slice(0,40);
- if(sb&&canEdit())sb.from('activity').insert({msg:String(m).slice(0,500),username:me.username,user_id:me.id}).then(()=>{},()=>{})}
+ if(sb&&canEdit())sb.from('activity').insert({msg:String(m).slice(0,500),username:me.username,user_id:me.id,owner_id:ws}).then(()=>{},()=>{})}
 function syncUI(){const d=$('#dot'),t=$('#syncT');if(!d)return;if(!me){d.className='dot off';t.textContent='Signed out'}else if(inflight){d.className='dot busy';t.textContent='Saving…'}else if(live){d.className='dot live';t.textContent='Live'}else{d.className='dot busy';t.textContent=loaded?'Reconnecting…':'Loading…'}}
-async function uploadFile(f,docId){const safe=f.name.replace(/[^\w.\-]+/g,'_').slice(-80);const path=`${docId}/${Date.now().toString(36)}-${safe}`;
+async function uploadFile(f,docId){const safe=f.name.replace(/[^\w.\-]+/g,'_').slice(-80);const path=`${ws}/${docId}/${Date.now().toString(36)}-${safe}`;
  const {error}=await sb.storage.from('files').upload(path,f,{upsert:false,contentType:f.type||'application/octet-stream'});if(error)throw error;return{path}}
 async function openFile(path){const w=window.open('about:blank','_blank');const {data,error}=await sb.storage.from('files').createSignedUrl(path,300);
  if(error||!data){if(w)w.close();toast('Could not open the file: '+(error&&error.message||''),null);return}if(w)w.location=data.signedUrl;else location.href=data.signedUrl}
 const fromAct=r=>({ts:new Date(r.ts).getTime(),m:r.username?`${(profiles.find(p=>p.id===r.user_id)?.full_name)||r.username}: ${r.msg}`:r.msg});
 async function loadAll(){
- const [t,p,d,r,s,a,pr]=await Promise.all([sb.from('tasks').select('*'),sb.from('people').select('*').order('sort'),sb.from('docs').select('*'),sb.from('research').select('*'),sb.from('settings').select('*'),sb.from('activity').select('*').order('id',{ascending:false}).limit(40),sb.from('profiles').select('*').order('created_at')]);
+ const W=ws;const [t,p,d,r,s,a,pr]=await Promise.all([sb.from('tasks').select('*').eq('owner_id',W),sb.from('people').select('*').eq('owner_id',W).order('sort'),sb.from('docs').select('*').eq('owner_id',W),sb.from('research').select('*').eq('owner_id',W),sb.from('settings').select('*').eq('owner_id',W),sb.from('activity').select('*').eq('owner_id',W).order('id',{ascending:false}).limit(40),sb.from('profiles').select('*').order('created_at')]);
+ if(W!==ws)return;
  const err=[t,p,d,r,s,a,pr].find(x=>x.error);if(err)throw err.error;
- profiles=pr.data||[];tasks=t.data.map(MAP.tasks.from);docs=d.data.map(MAP.docs.from);res=r.data.map(MAP.research.from);
- if(p.data.length){peopleDb=true;setPeople(p.data.map(MAP.people.from))}else{peopleDb=false;setPeople(DEFP.slice())}
- for(const row of s.data)applySetting(row);logs=a.data.map(fromAct);loaded=true;fillSet();render()}
+ profiles=pr.data||[];wsMenu();tasks=t.data.map(MAP.tasks.from);docs=d.data.map(MAP.docs.from);res=r.data.map(MAP.research.from);
+ if(p.data.length){peopleDb=true;setPeople(p.data.map(MAP.people.from))}else{peopleDb=false;setPeople([{k:'me',n:'Me',r:'My own tasks',c:'#57a639',order:0}])}
+ cfg={...DEF};pend={};meta={};for(const row of s.data)applySetting(row);logs=a.data.map(fromAct);loaded=true;fillSet();render()}
 function applySetting(row){if(!row)return;if(row.key==='timeline')cfg={...DEF,...row.value};else if(row.key==='pendrive')pend={...(row.value.done||{})};else if(row.key==='meta')meta={...row.value}}
 function upsertArr(arr,item,key='id'){const i=arr.findIndex(x=>x[key]===item[key]);if(i>=0)arr[i]=item;else arr.push(item);return arr}
-function onChange(pl){const tb=pl.table,ev=pl.eventType,row=ev==='DELETE'?pl.old:pl.new;
+function onChange(pl){const tb=pl.table,ev=pl.eventType,row=ev==='DELETE'?pl.old:pl.new;if(tb!=='profiles'&&row&&row.owner_id&&row.owner_id!==ws)return;
  if(tb==='tasks'){if(ev==='DELETE')tasks=tasks.filter(x=>x.id!==row.id);else upsertArr(tasks,MAP.tasks.from(row))}
  else if(tb==='docs'){if(ev==='DELETE')docs=docs.filter(x=>x.id!==row.id);else upsertArr(docs,MAP.docs.from(row))}
  else if(tb==='research'){if(ev==='DELETE')res=res.filter(x=>x.id!==row.id);else upsertArr(res,MAP.research.from(row))}
  else if(tb==='people'){let l=PEOPLE.slice();if(ev==='DELETE')l=l.filter(x=>x.k!==row.id);else upsertArr(l,MAP.people.from(row),'k');peopleDb=true;setPeople(l.sort((a,b)=>(a.order??99)-(b.order??99)))}
  else if(tb==='settings'){if(ev!=='DELETE'){applySetting(row);fillSet()}}
  else if(tb==='activity'){if(ev==='INSERT'&&!(row.user_id===me?.id)){logs.unshift(fromAct(row));logs=logs.slice(0,40)}}
- else if(tb==='profiles'){if(ev==='DELETE')profiles=profiles.filter(x=>x.id!==row.id);else upsertArr(profiles,row);if(row.id===me?.id&&ev!=='DELETE'){me={...me,...row};applyRole()}}
+ else if(tb==='profiles'){if(ev==='DELETE')profiles=profiles.filter(x=>x.id!==row.id);else upsertArr(profiles,row);wsMenu();if(row.id===me?.id&&ev!=='DELETE'){me={...me,...row};applyRole()}}
  clearTimeout(onChange.t);onChange.t=setTimeout(render,60)}
-function subscribe(){if(chan)sb.removeChannel(chan);chan=sb.channel('retask-live');
- ['tasks','people','docs','research','settings','activity','profiles'].forEach(t=>chan.on('postgres_changes',{event:'*',schema:'public',table:t},onChange));
+function subscribe(){if(chan)sb.removeChannel(chan);chan=sb.channel('retask-live-'+ws);
+ ['tasks','people','docs','research','settings','activity'].forEach(t=>chan.on('postgres_changes',{event:'*',schema:'public',table:t,filter:`owner_id=eq.${ws}`},onChange));chan.on('postgres_changes',{event:'*',schema:'public',table:'profiles'},onChange);
  chan.subscribe(st=>{const was=live;live=st==='SUBSCRIBED';syncUI();if(live&&!was&&loaded)loadAll().catch(()=>{})})}
 function applyRole(){document.body.classList.toggle('ro',!canEdit());aiTools=canEdit();
  const ini=(me.full_name||me.username||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();$('#meB').textContent=ini;
  $('#meW').innerHTML=`<b>${esc(me.full_name||me.username)}</b><div class="sm">@${esc(me.username)} · <span class="rolepill">${esc(me.role)}</span></div>`;
- $('#meTeam').style.display=me.role==='admin'?'':'none';$('#teamP').style.display=me.role==='admin'?'':'none'}
+ $('#meTeam').style.display=me.role==='admin'?'':'none';$('#teamP').style.display=me.role==='admin'?'':'none';wsMenu()}
+
+/* ---------- workspaces ---------- */
+async function switchWs(id){if(!me||(id!==me.id&&me.role!=='admin'))return;ws=id;tasks=[];docs=[];res=[];logs=[];loaded=false;applyRole();render();wsBanner();
+ try{await loadAll()}catch(e){toast('Could not load workspace: '+(e.message||e),null)}subscribe();wsBanner();toast(ownWs()?'Back in your workspace.':`Opened ${wsName()}'s workspace.`,null)}
+function wsBanner(){let b=$('#wsBar');if(!b){b=document.createElement('div');b.id='wsBar';b.className='wsbar';$('main').prepend(b)}
+ if(!me||ownWs()){b.hidden=true;b.innerHTML='';return}b.hidden=false;b.innerHTML=`<span><b>Viewing ${esc(wsName())}'s workspace.</b> Changes you make here are saved in their workspace.</span><button class="pri" id="wsBack">Back to my workspace</button>`;$('#wsBack').onclick=()=>switchWs(me.id)}
+function wsMenu(){const sel=$('#wsSel');if(!sel)return;if(!me||me.role!=='admin'){sel.hidden=true;return}sel.hidden=false;
+ sel.innerHTML=profiles.map(p=>`<option value="${esc(p.id)}" ${p.id===ws?'selected':''}>${p.id===me.id?'My workspace':esc((p.full_name||p.username))+"'s workspace"}</option>`).join('')}
+
+document.addEventListener('change',e=>{if(e.target.id==='wsSel')switchWs(e.target.value)});
 
 /* ---------- auth ---------- */
 const PW_MSG='Password needs at least 5 letters, 1 capital letter and 1 number (for example Regen1).';
@@ -1005,7 +1024,7 @@ async function showAuth(){$('#auth').hidden=false;$('#l_err').textContent='';
 async function startSession(){const {data:{user}}=await sb.auth.getUser();if(!user){showAuth();return}
  const {data:p}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
  if(!p){await sb.auth.signOut();showAuth();$('#l_err').textContent='This login has no access to ReTask yet. Ask your admin.';return}
- me=p;$('#auth').hidden=true;applyRole();sample=makeSample();syncUI();
+ me=p;ws=p.id;$('#auth').hidden=true;applyRole();sample=makeSample();syncUI();
  try{await loadAll()}catch(e){toast('Could not load data: '+(e.message||e),null)}subscribe();aiStatus();if(!stGet('rt_tour_done'))setTimeout(()=>{if(me&&!tOn)startTour()},1100)}
 $('#loginF').addEventListener('submit',async e=>{e.preventDefault();$('#l_err').textContent='';$('#l_btn').disabled=true;$('#l_btn').textContent='Signing in…';
  const {error}=await sb.auth.signInWithPassword({email:toEmail($('#l_user').value),password:$('#l_pass').value});
@@ -1018,7 +1037,7 @@ $('#bootF').addEventListener('submit',async e=>{e.preventDefault();$('#b_err').t
  catch(er){$('#b_err').textContent=er.message||String(er)}finally{$('#b_btn').disabled=false;$('#b_btn').textContent='Create admin account'}});
 $('#meB').addEventListener('click',e=>{e.stopPropagation();const m=$('#meM'),on=!m.classList.contains('on');m.classList.toggle('on',on);$('#meB').setAttribute('aria-expanded',on)});
 document.addEventListener('click',e=>{if(!e.target.closest('.um'))$('#meM').classList.remove('on')});
-$('#meOut').addEventListener('click',async()=>{$('#meM').classList.remove('on');if(chan)sb.removeChannel(chan);chan=null;live=false;await sb.auth.signOut();me=null;tasks=[];docs=[];res=[];logs=[];loaded=false;closeCop();turns=[];$('#msgs').innerHTML='';render();showAuth()});
+$('#meOut').addEventListener('click',async()=>{$('#meM').classList.remove('on');if(chan)sb.removeChannel(chan);chan=null;live=false;await sb.auth.signOut();me=null;ws=null;tasks=[];docs=[];res=[];logs=[];loaded=false;closeCop();turns=[];$('#msgs').innerHTML='';render();showAuth()});
 $('#meTeam').addEventListener('click',()=>{$('#meM').classList.remove('on');go('pendrive');setTimeout(()=>$('#teamP').scrollIntoView({behavior:'smooth'}),80)});
 $('#mePw').addEventListener('click',()=>{$('#meM').classList.remove('on');$('#a_p1').value='';$('#a_p2').value='';$('#a_err').textContent='';$('#amodal').classList.add('on');setTimeout(()=>$('#a_p1').focus(),30)});
 $('#amodal').addEventListener('click',e=>{if(e.target.id==='amodal')$('#amodal').classList.remove('on')});
@@ -1027,9 +1046,9 @@ $('#accF').addEventListener('submit',async e=>{e.preventDefault();if(!pwOk($('#a
 
 /* ---------- team (admin) ---------- */
 function teamView(){if(!me||me.role!=='admin')return;
- $('#teamL').innerHTML=`<table class="team stack"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Actions</th></tr></thead><tbody>${profiles.map(p=>`<tr><td><b style="font-weight:600">${esc(p.full_name||'–')}</b>${p.id===me.id?' <span class="sm">(you)</span>':''}</td><td class="sm">@${esc(p.username)}</td><td><select data-role="${esc(p.id)}" aria-label="Role" ${p.id===me.id?'disabled':''}>${['admin','editor','viewer'].map(r=>`<option value="${r}" ${p.role===r?'selected':''}>${r[0].toUpperCase()+r.slice(1)}</option>`).join('')}</select></td><td><div class="rb"><button data-pw="${esc(p.id)}">Reset password</button>${p.id!==me.id?`<button data-del="${esc(p.id)}" style="color:var(--red)">Remove</button>`:''}</div></td></tr>`).join('')}</tbody></table>`}
+ $('#teamL').innerHTML=`<table class="team stack"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Actions</th></tr></thead><tbody>${profiles.map(p=>`<tr><td><b style="font-weight:600">${esc(p.full_name||'–')}</b>${p.id===me.id?' <span class="sm">(you)</span>':''}</td><td class="sm">@${esc(p.username)}</td><td><select data-role="${esc(p.id)}" aria-label="Role" ${p.id===me.id?'disabled':''}>${['admin','editor','viewer'].map(r=>`<option value="${r}" ${p.role===r?'selected':''}>${r[0].toUpperCase()+r.slice(1)}</option>`).join('')}</select></td><td><div class="rb">${p.id!==ws?`<button data-ws="${esc(p.id)}">Open workspace</button>`:'<span class="sm">open now</span>'}<button data-pw="${esc(p.id)}">Reset password</button>${p.id!==me.id?`<button data-del="${esc(p.id)}" style="color:var(--red)">Remove</button>`:''}</div></td></tr>`).join('')}</tbody></table>`}
 $('#teamL').addEventListener('change',async e=>{const s=e.target.closest('[data-role]');if(!s)return;try{await fn('admin-users',{action:'set_role',user_id:s.dataset.role,role:s.value});toast('Role updated.',null);log(`Changed a login role to ${s.value}`)}catch(er){toast(er.message,null);teamView()}});
-$('#teamL').addEventListener('click',async e=>{const pw=e.target.closest('[data-pw]'),del=e.target.closest('[data-del]');
+$('#teamL').addEventListener('click',async e=>{const wsb=e.target.closest('[data-ws]');if(wsb){switchWs(wsb.dataset.ws);go('overview');return}const pw=e.target.closest('[data-pw]'),del=e.target.closest('[data-del]');
  if(pw){const p=profiles.find(x=>x.id===pw.dataset.pw);const np=newPw();
   try{await fn('admin-users',{action:'set_password',user_id:p.id,password:np});copy(`ReTask login\nUsername: ${p.username}\nNew password: ${np}\nPlease change it after signing in (top-right menu).`,`New password for @${p.username} copied. Send it to them privately.`)}catch(er){toast(er.message,null)}}
  if(del){const p=profiles.find(x=>x.id===del.dataset.del);if(del.dataset.sure!=='1'){del.dataset.sure='1';del.textContent='Click again to remove';setTimeout(()=>{if(del.isConnected){del.dataset.sure='';del.textContent='Remove'}},4000);return}
@@ -1085,13 +1104,13 @@ const TOUR=[
  {sel:'#qaF',view:'overview',t:'Quick add',b:'Type a task in one line. Example: p1 @nana 25/11 Send layout plan. p1 is urgent, @nana assigns it, 25/11 is the due date. Add ! to mark it blocked.'},
  {sel:'#newB',t:'+ New',b:'Add a full task, a person, a document or a research topic with every detail. Shortcut: N.'},
  {sel:'.mission',view:'overview',t:'Mission strip',b:'Your greeting, next task, countdowns to the key shipping dates, and the ring showing how much is done.'},
- {sel:'#kpis',view:'overview',t:'Live numbers',b:'Open, overdue, due in 7 days and blocked tasks. These update by themselves when anyone in the team changes something.'},
+ {sel:'#kpis',view:'overview',t:'Live numbers',b:'Open, overdue, due in 7 days and blocked tasks. These update by themselves, live on all your devices.'},
  {sel:'#att',view:'overview',pad:14,t:'Needs attention',b:'Overdue, due soon, blocked tasks and research reminders. Tap any title to open and edit it.'},
  {sel:'#cols',view:'board',t:'Board',b:'Drag a card between To do, In progress and Done. On a phone, use the ← → arrows on each card.'},
  {sel:'#ppl .card',view:'people',t:'People cards',b:'Tap the circle to move a task from To do to In progress to Done. Add a WhatsApp number to a person to get a one-tap reminder button with their pending items.'},
  {sel:'#dl',view:'docs',t:'Documents',b:'Tap L, P, C or H to record where a copy is kept: Laptop, Pendrive, Cloud, Hardcopy. Open a document to attach the file itself (up to 50 MB, private to your team).'},
  {sel:'#aiB',t:'Regen AI',b:'Ask questions, paste a WhatsApp message to turn it into tasks, or ask for a reminder draft. Shortcut: Ctrl + J.'},
- {sel:'#meB',t:'Your account',b:'Change your password, sign out, and (for admins) add colleagues with their own username and password.'},
+ {sel:'#meB',t:'Your account',b:'Change your password and sign out. Admins also add colleagues here and can open any colleague\'s workspace to help them.'},
  {t:'You are ready',b:'Press ? anytime for the Help Center with step-by-step guides. Good luck with the Jambi start-up!'}];
 let tStep=0,tOn=false;
 function tourEls(){if($('#tourL'))return;const d=document.createElement('div');d.id='tourL';d.innerHTML='<div class="tspot" id="tSpot"></div><div class="tcard" id="tCard" role="dialog" aria-live="polite"><div class="tprog" id="tProg"></div><b id="tT"></b><p id="tB"></p><div class="tbtn"><button id="tSkip" type="button">Skip</button><span class="grow"></span><button id="tPrev" type="button">Back</button><button class="pri" id="tNext" type="button">Next</button></div></div>';document.body.append(d);
@@ -1119,7 +1138,7 @@ addEventListener('resize',()=>{if(tOn)showStep(tStep)});
 document.addEventListener('keydown',e=>{if(!tOn)return;if(e.key==='Escape'){e.stopImmediatePropagation();endTour()}else if(e.key==='ArrowRight'||e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();$('#tNext').click()}else if(e.key==='ArrowLeft'){e.preventDefault();e.stopImmediatePropagation();showStep(tStep-1)}},true);
 
 const HELP=[
- ['Getting started','rocket',`<ol><li>Sign in with the username and password your admin gave you.</li><li>Change your password: top-right avatar → <b>Change my password</b>.</li><li>Start on <b>Overview</b>. It shows what is urgent, the key shipping dates and the team's progress.</li><li>Everything saves automatically and shows live on every colleague's screen. The green dot in the header means you are connected.</li></ol>`],
+ ['Getting started','rocket',`<ol><li>Sign in with the username and password your admin gave you.</li><li>Change your password: top-right avatar → <b>Change my password</b>.</li><li>Start on <b>Overview</b>. It shows what is urgent, the key shipping dates and the team's progress.</li><li>Your workspace is private: colleagues cannot see your tasks, people, documents or research, and you cannot see theirs. Everything saves automatically and syncs live across your phone and laptop. The green dot in the header means you are connected.</li></ol>`],
  ['Add and edit tasks','plus',`<ol><li><b>Quick add</b>: type in the bar at the top and press Enter. Example: <code>p1 @fahmi 27/11 Bank statement</code>.<ul><li><b>p1 / p2 / p3</b>: priority (p1 = urgent)</li><li><b>@name</b>: who it's for (first letters are enough)</li><li><b>25/11</b>, <b>today</b>, <b>tmr</b>, <b>+3</b>: due date</li><li><b>!</b>: blocked, waiting on someone</li></ul></li><li><b>+ New → Task</b> for full detail: formats (PDF, Excel, WhatsApp, hardcopy…), a checklist, notes, or a date that follows the shipping timeline.</li><li>Tap any task title to edit or delete it. A deleted task can be restored with <b>Undo</b>.</li></ol>`],
  ['Track progress','check',`<ol><li><b>Board</b>: drag cards between To do, In progress and Done (on phones use the ← → arrows).</li><li><b>People</b>: tap the circle next to a task to step it To do → In progress → Done.</li><li><b>Checklists</b>: tick items inside a task. When every item is ticked, the task completes itself.</li><li><b>Hardcopy / Softcopy</b> buttons (e.g. Fahmi's documents): the task completes when both are ticked.</li><li>Use the filter chips <b>Open, P1, Next 7 days, Overdue, Blocked</b> and the search box to focus.</li></ol>`],
  ['People and WhatsApp reminders','chat',`<ol><li>Go to <b>People → + Add person</b>, or tap a name to edit it.</li><li>Add their WhatsApp number with the country code, e.g. 60123456789 (Malaysia) or 62812… (Indonesia).</li><li>A green <b>WhatsApp reminder</b> button appears. It opens WhatsApp with their pending items and due dates already typed.</li><li><b>Copy WhatsApp status</b> (above the task list) copies a full team update for a group chat.</li></ol>`],
@@ -1127,7 +1146,7 @@ const HELP=[
  ['Research and reminders','search',`<ol><li><b>Research</b>: add things you need to find out, e.g. <code>p1 30/11 Strapping supplier in Jambi</code>.</li><li>Open a topic to write <b>why it matters</b>, your <b>findings</b> and <b>sources</b>.</li><li>A reminder date puts the topic in <b>Needs attention</b> on the Overview when it is close.</li><li>Move cards To research → Investigating → Answered.</li></ol>`],
  ['Shipping timeline','clock',`<ol><li><b>Timeline</b> shows machinery, biosolution and your travel on one chart, plus a dot for every task deadline.</li><li><b>Adjust timeline assumptions</b>: enter the real ex-works date, sea freight, customs and installation days. Every dependent date moves automatically.</li><li>Tick <b>Installation days confirmed</b> once XRido confirms in writing.</li><li>Tasks set to follow the timeline (e.g. "Pack biosolution") move with it.</li></ol>`],
  ['Regen AI assistant','spark',`<ol><li>Tap the glowing orb at the bottom right (or Ctrl + J).</li><li>Ask things like "What is at risk this week?" or "Draft a reminder to Fahmi".</li><li>Paste a WhatsApp message and say "turn this into tasks". It creates them for the right people, and every change has an <b>Undo</b>.</li><li>Always check important figures before sending them on. AI must be switched on by an admin (System → Backup & restore shows its status).</li></ol>`],
- ['Team and logins (admins)','users',`<ol><li>Top-right avatar → <b>Team &amp; logins</b>, or System.</li><li><b>Add a colleague</b>: full name, username (e.g. Nana), temporary password (e.g. Regen1) and role.<ul><li><b>Admin</b>: everything, plus manages logins</li><li><b>Editor</b>: adds and changes tasks, people and files</li><li><b>Viewer</b>: read only</li></ul></li><li>Their login details are copied for you, ready to paste into WhatsApp.</li><li><b>Reset password</b> creates a new one and copies it. <b>Remove</b> deletes the login (click twice).</li></ol>`],
+ ['Team and logins (admins)','users',`<ol><li>Top-right avatar → <b>Team &amp; logins</b>, or System.</li><li><b>Add a colleague</b>: full name, username (e.g. Nana), temporary password (e.g. Regen1) and role.<ul><li><b>Admin</b>: everything, plus manages logins</li><li><b>Editor</b>: adds and changes tasks, people and files</li><li><b>Viewer</b>: read only</li></ul></li><li>Their login details are copied for you, ready to paste into WhatsApp.</li><li>Each colleague starts with an empty, private workspace. To help someone, use <b>Open workspace</b> here or the workspace selector in the header. A banner shows whose workspace you are in, and <b>Back to my workspace</b> returns you.</li><li><b>Reset password</b> creates a new one and copies it. <b>Remove</b> deletes the login (click twice).</li></ol>`],
  ['Backup and pendrive','drive',`<ol><li><b>System → Copy full backup</b> once a week; paste it into a .json file on the Regen pendrive.</li><li><b>Copy tasks as CSV</b> pastes straight into Excel.</li><li>Tick folders in the pendrive plan as you copy and check them.</li></ol>`],
  ['Keyboard shortcuts','key',`<div class="sysk"><span><kbd>N</kbd> New task</span><span><kbd>Q</kbd> Quick add</span><span><kbd>/</kbd> Search</span><span><kbd>1</kbd>–<kbd>8</kbd> Views</span><span><kbd>Ctrl</kbd>+<kbd>K</kbd> Commands</span><span><kbd>Ctrl</kbd>+<kbd>J</kbd> Regen AI</span><span><kbd>?</kbd> Help</span><span><kbd>Esc</kbd> Close</span></div>`]];
 const HIC={rocket:'M5 15c-1 1-1.5 3.5-1.5 3.5S6 18 7 17m6-12c3-3 7-2.5 7-2.5s.5 4-2.5 7L13 14l-3-3zM10 11 7 10l3-3 2 .5M13 14l1 3-3 3-.5-2',plus:'M12 5v14M5 12h14',check:'M5 12.5 10 17 19 7',chat:'M4 5h16v11H9l-5 4z',folder:'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',search:'M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM15.5 15.5 21 21',clock:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2',spark:'M12 2l1.8 5.6L19 9.5l-5.2 1.9L12 17l-1.8-5.6L5 9.5l5.2-1.9z',users:'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M17 11a2.5 2.5 0 1 0 0-5M17.5 14.5c2.4.2 4 1.8 4.5 4.5',drive:'M7 8h10v13H7zM9 8V3h6v5',key:'M3 7h18v10H3zM7 11h.01M11 11h.01M15 11h.01M8 14h8'};
