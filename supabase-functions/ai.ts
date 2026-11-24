@@ -60,9 +60,11 @@ Deno.serve(async (req) => {
       const { r, out } = await call("https://ai-gateway.vercel.sh/v1/messages", headers, { ...base, model });
       if (r.ok) {
         goodModel = model;
+        console.log(`gateway ok: ${model}`);
         return json({ content: out.content, stop_reason: out.stop_reason, model: out.model || model });
       }
       last = out?.error?.message || `AI service error ${r.status}`;
+      console.error(`gateway ${model} -> ${r.status}: ${last}`);
       if (r.status === 429) return json({ error: "Regen AI is busy (free-tier limit). Wait a minute and try again." }, 200);
       if (r.status === 401) return json({ error: "The AI Gateway key is invalid or expired. An admin needs to update AI_GATEWAY_API_KEY." }, 200);
       if (/credit|balance|insufficient|quota/i.test(last) && r.status === 402) {
