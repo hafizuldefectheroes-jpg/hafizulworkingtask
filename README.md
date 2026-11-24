@@ -47,11 +47,12 @@ ReTask is live at **https://hafizulworkingtask.vercel.app**. It is deployed by V
 
 The page holds no passwords or secret keys. The key inside it is Supabase's public key, which is safe to publish. All data is protected by the login and the role rules on the server.
 
-## 4. Optional: turn on Regen AI (paid per use)
+## Regen AI (free, via Vercel AI Gateway)
 
-1. Create an API key at console.anthropic.com.
-2. In Supabase, go to **Project Hafizul Hub → Edge Functions → Secrets** and add `ANTHROPIC_API_KEY` = your key.
-3. Optionally add `RETASK_AI_MODEL` to choose the model. The default is `claude-haiku-5-5`, the cheapest.
+1. In Vercel, open **AI Gateway → API Keys** and create a key. Every Vercel account gets $5 of free AI Gateway usage every 30 days (free-tier models only, rate limited).
+2. In Supabase, go to **Project Hafizul Hub → Edge Functions → Secrets** and add `AI_GATEWAY_API_KEY` = that key.
+3. The server tries these models in order and keeps the first one the free tier allows: `anthropic/claude-haiku-5.5`, `deepseek/deepseek-v4.1-flash`, `google/gemini-2.5-flash-lite`, `openai/gpt-5-nano`, `nvidia/nemotron-3.5-lightning-free`. Override with a `RETASK_AI_MODELS` secret (comma separated).
+4. Paid alternative: add `ANTHROPIC_API_KEY` instead (used only when no gateway key is set).
 
 Everything else in ReTask works without AI.
 
