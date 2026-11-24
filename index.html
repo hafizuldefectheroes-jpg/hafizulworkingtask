@@ -868,9 +868,9 @@ $('#docF').addEventListener('submit',async e=>{e.preventDefault();const old=docs
  if(!d.name)return;
  if(f){
   if(f.size>50*1048576){toast('File is over 50 MB. Paste a cloud link instead.',null);return}
-  $('#d_save').disabled=true;$('#d_fileS').textContent='Uploading…';try{const r=await uploadFile(f,d.id);d.assetId=r.path;d.fileName=f.name;d.loc.c=true}catch(er){$('#d_save').disabled=false;$('#d_fileS').textContent='Upload failed: '+(er&&er.message||er);return}$('#d_save').disabled=false}
+  $('#d_save').disabled=true;$('#d_fileS').textContent='Uploading…';try{const r=await uploadFile(f,d.id);if(old?.assetId&&old.assetId!==r.path)rmFile(old.assetId);d.assetId=r.path;d.fileName=f.name;d.loc.c=true}catch(er){$('#d_save').disabled=false;$('#d_fileS').textContent='Upload failed: '+(er&&er.message||er);return}$('#d_save').disabled=false}
  const i=docs.findIndex(x=>x.id===d.id);if(i>=0)docs[i]=d;else docs.push(d);$('#dmodal').classList.remove('on');docsView();dwrite(d);log(`${old?'Updated':'Added'} document: ${d.name}`)});
-$('#d_del').addEventListener('click',()=>{const d=docs.find(x=>x.id===dEdit);if(!d)return;docs=docs.filter(x=>x!==d);$('#dmodal').classList.remove('on');docsView();write('docs/'+d.id,null,true);log('Removed document: '+d.name);toast('Document removed from register',()=>{docs.push(d);docsView();dwrite(d)})});
+$('#d_del').addEventListener('click',()=>{const d=docs.find(x=>x.id===dEdit);if(!d)return;docs=docs.filter(x=>x!==d);$('#dmodal').classList.remove('on');docsView();write('docs/'+d.id,null,true);log('Removed document: '+d.name);const ft=d.assetId?setTimeout(()=>rmFile(d.assetId),9000):0;toast(d.assetId?'Document and its file removed':'Document removed from register',()=>{clearTimeout(ft);docs.push(d);docsView();dwrite(d)})});
 
 /* ---------- Research & reminders ---------- */
 const RS={todo:'To research',doing:'Investigating',done:'Answered'};
@@ -1045,8 +1045,9 @@ function log(m){const who=me?(me.full_name||me.username):'';logs.unshift({ts:Dat
 function syncUI(){const d=$('#dot'),t=$('#syncT');if(!d)return;if(!me){d.className='dot off';t.textContent='Signed out'}else if(inflight){d.className='dot busy';t.textContent='Saving…'}else if(live){d.className='dot live';t.textContent='Live'}else{d.className='dot busy';t.textContent=loaded?'Reconnecting…':'Loading…'}}
 async function uploadFile(f,docId){const safe=f.name.replace(/[^\w.\-]+/g,'_').slice(-80);const path=`${ws}/${docId}/${Date.now().toString(36)}-${safe}`;
  const {error}=await sb.storage.from('files').upload(path,f,{upsert:false,contentType:f.type||'application/octet-stream'});if(error)throw error;return{path}}
+async function rmFile(path){if(!path||!sb)return;try{await sb.storage.from('files').remove([path])}catch(_){}}
 async function openFile(path){const w=window.open('about:blank','_blank');const {data,error}=await sb.storage.from('files').createSignedUrl(path,300);
- if(error||!data){if(w)w.close();toast('Could not open the file: '+(error&&error.message||''),null);return}if(w)w.location=data.signedUrl;else location.href=data.signedUrl}
+ if(error||!data){if(w)w.close();const d=docs.find(x=>x.assetId===path);if(d&&/not.?found|does not exist|404/i.test((error&&error.message)||'')){d.assetId=null;d.fileName=null;docsView();if(canEdit())dwrite(d);toast('That file is no longer in storage, so the link was removed.',null);return}toast('Could not open the file: '+(error&&error.message||''),null);return}if(w)w.location=data.signedUrl;else location.href=data.signedUrl}
 const fromAct=r=>({ts:new Date(r.ts).getTime(),m:r.username?`${(profiles.find(p=>p.id===r.user_id)?.full_name)||r.username}: ${r.msg}`:r.msg});
 async function loadAll(){
  const W=ws;const [t,p,d,r,s,a,pr]=await Promise.all([sb.from('tasks').select('*').eq('owner_id',W),sb.from('people').select('*').eq('owner_id',W).order('sort'),sb.from('docs').select('*').eq('owner_id',W),sb.from('research').select('*').eq('owner_id',W),sb.from('settings').select('*').eq('owner_id',W),sb.from('activity').select('*').eq('owner_id',W).order('id',{ascending:false}).limit(40),sb.from('profiles').select('*').order('created_at')]);
@@ -1067,7 +1068,7 @@ function onChange(pl){const tb=pl.table,ev=pl.eventType,row=ev==='DELETE'?pl.old
  else if(tb==='profiles'){if(ev==='DELETE')profiles=profiles.filter(x=>x.id!==row.id);else upsertArr(profiles,row);wsMenu();if(row.id===me?.id&&ev!=='DELETE'){me={...me,...row};applyRole()}}
  clearTimeout(onChange.t);onChange.t=setTimeout(render,60)}
 function subscribe(){if(chan)sb.removeChannel(chan);chan=sb.channel('retask-live-'+ws);
- ['tasks','people','docs','research','settings','activity'].forEach(t=>chan.on('postgres_changes',{event:'*',schema:'public',table:t,filter:`owner_id=eq.${ws}`},onChange));chan.on('postgres_changes',{event:'*',schema:'public',table:'profiles'},onChange);
+ ['tasks','people','docs','research','settings','activity'].forEach(t=>{['INSERT','UPDATE'].forEach(ev=>chan.on('postgres_changes',{event:ev,schema:'public',table:t,filter:`owner_id=eq.${ws}`},onChange));chan.on('postgres_changes',{event:'DELETE',schema:'public',table:t},onChange)});chan.on('postgres_changes',{event:'*',schema:'public',table:'profiles'},onChange);
  chan.subscribe(st=>{const was=live;live=st==='SUBSCRIBED';syncUI();if(live&&!was&&loaded)loadAll().catch(()=>{})})}
 function applyRole(){document.body.classList.toggle('ro',!canEdit());aiTools=canEdit();
  const ini=(me.full_name||me.username||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();$('#meB').textContent=ini;
