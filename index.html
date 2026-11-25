@@ -486,6 +486,22 @@ input:focus,select:focus,textarea:focus{border-color:rgba(87,166,57,.8);box-shad
 .thm button[aria-pressed=true]{background:light-dark(#0e2a20,rgba(87,166,57,.22))!important;color:light-dark(#fff,#e6f7da);border-color:rgba(155,224,122,.4)!important}
 @media(max-width:860px){.hdr{background:light-dark(rgba(242,245,241,.97),rgba(4,9,7,.95))}.tabs{background:light-dark(rgba(255,255,255,.9),rgba(11,19,16,.9))}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}body::before{animation:none}}
+.links{display:grid;gap:8px;margin-top:2px}
+.ytc{position:relative;display:block;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:#000;text-decoration:none}
+.ytc img{width:100%;height:100%;object-fit:cover;display:block;opacity:.88;transition:transform .5s var(--ease),opacity .3s}
+.ytc:hover img{transform:scale(1.04);opacity:1}
+.ytp{position:absolute;left:50%;top:50%;width:46px;height:32px;margin:-16px 0 0 -23px;border-radius:9px;background:#ff3b30;color:#fff;display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.4);transition:transform .3s var(--ease)}
+.ytc:hover .ytp{transform:scale(1.1)}.ytp svg{width:18px;height:18px}
+.ytl{position:absolute;left:0;right:0;bottom:0;padding:16px 10px 7px;font-size:12px;font-weight:600;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.75))}
+.lchips{display:flex;flex-wrap:wrap;gap:6px}
+.lchip{display:inline-flex;align-items:center;gap:7px;max-width:100%;padding:5px 9px 5px 8px;border-radius:999px;border:1px solid var(--line2);background:var(--soft);color:var(--ink);font-size:12.5px;font-weight:550;text-decoration:none;transition:border-color .25s,background .25s,transform .3s var(--ease)}
+.lchip:hover{border-color:rgba(155,224,122,.5);transform:translateY(-1px)}
+.lchip i{width:8px;height:8px;border-radius:50%;background:var(--lc);flex:none;box-shadow:0 0 8px var(--lc)}
+.lchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lchip svg{width:12px;height:12px;color:var(--mute);flex:none}
+.lnotes{display:grid;gap:2px}.lnote{font-size:12.5px;color:var(--mute)}
+.ilink{color:var(--g1);text-decoration:none;font-weight:550;word-break:break-all}.ilink:hover{text-decoration:underline}
+#r_lprev:empty{display:none}#r_lprev .ytc{max-width:320px}
 </style>
 <script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
 </head>
@@ -713,7 +729,7 @@ input:focus,select:focus,textarea:focus{border-color:rgba(87,166,57,.8);box-shad
     <label>Status<select id="r_status"><option value="todo">To research</option><option value="doing">Investigating</option><option value="done">Answered</option></select></label>
     <label class="full">Why it matters / what to find out<textarea id="r_why"></textarea></label>
     <label class="full">Findings<textarea id="r_find" style="min-height:110px" placeholder="What you learned, who you asked, what was decided"></textarea></label>
-    <label class="full">Sources & links (one per line)<textarea id="r_links" placeholder="https://… or supplier name / contact"></textarea></label>
+    <label class="full">Links & sources, one per line<textarea id="r_links" placeholder="Paste a YouTube, TikTok, website or Google Drive link. Add a label after it if you like:&#10;https://youtu.be/… How to tie a bale&#10;Supplier: Ahmad 012-345 6789"></textarea><span class="sm">YouTube links show a video preview. Every link opens in a new tab.</span></label><div class="full" id="r_lprev"></div>
     <div class="full" style="display:flex;gap:8px;flex-wrap:wrap"><button class="pri" type="submit">Save</button><button type="button" class="xclose">Cancel</button><span class="grow"></span><button type="button" id="r_del" style="color:var(--red)">Delete</button></div>
   </form>
 </div></div>
@@ -983,11 +999,25 @@ $('#d_del').addEventListener('click',()=>{const d=docs.find(x=>x.id===dEdit);if(
 const RS={todo:'To research',doing:'Investigating',done:'Answered'};
 function remLabel(r){if(r.status==='done')return['Answered','ok'];if(!r.remind)return['No reminder',''];const n=diff(today(),D(r.remind));if(n<0)return[`Reminder ${-n}d overdue`,'bad'];if(n===0)return['Remind today','warn'];if(n<=3)return[`Remind in ${n}d`,'warn'];return['Remind '+fmt(D(r.remind)),'']}
 function resView(){$('#rstart').innerHTML=res.length?'':`<div class="panel" style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span class="grow">No research topics yet. Load the manual baler tying topic you asked about, with the questions to answer already listed.</span>${me&&me.role==='admin'&&ownWs()?'<button class="pri" id="ldRes">Load baler research topic</button>':''}</div>`;const L=res.slice().sort((a,b)=>(+a.pri-+b.pri)||(a.remind||'9').localeCompare(b.remind||'9'));
- $('#rcols').innerHTML=['todo','doing','done'].map(s=>{const c=L.filter(r=>(r.status||'todo')===s);return `<div class="col" data-rcol="${s}"><h3>${RS[s]}<span class="sm">${c.length}</span></h3>${c.map(r=>{const [l,cl]=remLabel(r);return `<div class="rc"><button class="tt" data-ract="edit" data-id="${esc(r.id)}">${esc(r.title)}</button><div class="meta"><span class="pp pp${+r.pri||2}">P${+r.pri||2}</span><span class="cat">${esc(r.cat||'Other')}</span><span class="due ${cl}">${esc(l)}</span></div>${r.why?`<div class="why">${esc(r.why)}</div>`:''}${r.findings?`<div class="fd">${esc(r.findings)}</div>`:''}<div class="meta" style="justify-content:flex-end">${s!=='todo'?`<button data-ract="mv" data-to="${s==='done'?'doing':'todo'}" data-id="${esc(r.id)}" aria-label="Move back" style="min-height:30px;padding:0 8px">←</button>`:''}${s!=='done'?`<button data-ract="mv" data-to="${s==='todo'?'doing':'done'}" data-id="${esc(r.id)}" aria-label="Move forward" style="min-height:30px;padding:0 8px">→</button>`:''}</div></div>`}).join('')||'<div class="empty" style="padding:16px">Nothing here</div>'}</div>`}).join('')}
+ $('#rcols').innerHTML=['todo','doing','done'].map(s=>{const c=L.filter(r=>(r.status||'todo')===s);return `<div class="col" data-rcol="${s}"><h3>${RS[s]}<span class="sm">${c.length}</span></h3>${c.map(r=>{const [l,cl]=remLabel(r);return `<div class="rc"><button class="tt" data-ract="edit" data-id="${esc(r.id)}">${esc(r.title)}</button><div class="meta"><span class="pp pp${+r.pri||2}">P${+r.pri||2}</span><span class="cat">${esc(r.cat||'Other')}</span><span class="due ${cl}">${esc(l)}</span></div>${r.why?`<div class="why">${linkify(r.why)}</div>`:''}${r.findings?`<div class="fd">${linkify(r.findings)}</div>`:''}${linkCards(r.links)}<div class="meta" style="justify-content:flex-end">${s!=='todo'?`<button data-ract="mv" data-to="${s==='done'?'doing':'todo'}" data-id="${esc(r.id)}" aria-label="Move back" style="min-height:30px;padding:0 8px">←</button>`:''}${s!=='done'?`<button data-ract="mv" data-to="${s==='todo'?'doing':'done'}" data-id="${esc(r.id)}" aria-label="Move forward" style="min-height:30px;padding:0 8px">→</button>`:''}</div></div>`}).join('')||'<div class="empty" style="padding:16px">Nothing here</div>'}</div>`}).join('')}
+/* ---------- links: YouTube, TikTok, websites ---------- */
+const URLRX=/\b((?:https?:\/\/|www\.)[^\s<>"']+[^\s<>"'.,;:!?)\]])/gi;
+const normUrl=u=>/^https?:\/\//i.test(u)?u:'https://'+u;
+const ytId=u=>{const m=String(u).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/i);return m?m[1]:null};
+const PLAT=[[/youtube\.com|youtu\.be/,'YouTube','#ff3b30'],[/tiktok\.com/,'TikTok','#25f4ee'],[/facebook\.com|fb\.watch/,'Facebook','#1877f2'],[/instagram\.com/,'Instagram','#e1306c'],[/linkedin\.com/,'LinkedIn','#0a66c2'],[/(?:^|\.)x\.com|twitter\.com/,'X','#8a978f'],[/drive\.google|docs\.google/,'Google Drive','#1fa463'],[/wikipedia\.org/,'Wikipedia','#a2a9b1'],[/alibaba\.com|made-in-china\.com|1688\.com/,'Supplier','#ff6a00'],[/wa\.me|whatsapp\.com/,'WhatsApp','#25d366']];
+function linkInfo(raw){const url=normUrl(raw);let host='';try{host=new URL(url).hostname.replace(/^www\./,'')}catch(_){return null}
+ const p=PLAT.find(x=>x[0].test(host));const pdf=/\.pdf(?:$|[?#])/i.test(url);return{url,host,name:p?p[1]:pdf?'PDF':host,color:p?p[2]:pdf?'#ff6b55':'var(--g1)',yt:ytId(url)}}
+const linkify=t=>esc(t).replace(URLRX,m=>{const u=normUrl(m.replace(/&amp;/g,'&'));return `<a class="ilink" href="${esc(u)}" target="_blank" rel="noopener">${m.length>48?m.slice(0,45)+'…':m}</a>`});
+function linkCards(text,max=6){const lines=String(text||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);let yt='',chips='',notes='',n=0;
+ for(const line of lines){const urls=line.match(URLRX);if(!urls){notes+=`<span class="lnote">${esc(line)}</span>`;continue}
+  for(const u of urls){const i=linkInfo(u);if(!i||n>=max)continue;n++;const label=line.replace(u,'').replace(/^[\s\-–:|]+|[\s\-–:|]+$/g,'');
+   if(i.yt&&!yt){yt=`<a class="ytc" href="${esc(i.url)}" target="_blank" rel="noopener" title="Watch on YouTube"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${i.yt}/mqdefault.jpg" onerror="this.style.visibility='hidden'"><span class="ytp"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span>${label?`<span class="ytl">${esc(label)}</span>`:''}</a>`;continue}
+   chips+=`<a class="lchip" href="${esc(i.url)}" target="_blank" rel="noopener" title="${esc(i.url)}"><i style="--lc:${i.color}"></i><span>${esc(label||i.name)}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`}}
+ return yt||chips||notes?`<div class="links">${yt}${chips?`<div class="lchips">${chips}</div>`:''}${notes?`<div class="lnotes">${notes}</div>`:''}</div>`:''}
 const rwrite=r=>{const {id,...b}=r;write('research/'+id,b)};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-ract]');if(!b)return;const r=res.find(x=>x.id===b.dataset.id);if(!r)return;
  if(b.dataset.ract==='edit')openRes(r);else{r.status=b.dataset.to;resView();rwrite(r);log(`Research ${RS[r.status].toLowerCase()}: ${r.title}`)}});
-function openRes(r){rEdit=r?r.id:null;$('#rT').textContent=r?'Research topic':'New research topic';$('#r_title').value=r?.title||'';$('#r_cat').value=r?.cat||'Machinery';$('#r_pri').value=String(r?.pri||2);$('#r_rem').value=r?.remind||'';$('#r_status').value=r?.status||'todo';$('#r_why').value=r?.why||'';$('#r_find').value=r?.findings||'';$('#r_links').value=r?.links||'';$('#r_del').style.display=r?'':'none';closePal();$('#rmodal').classList.add('on');setTimeout(()=>$('#r_title').focus(),20)}
+function openRes(r){rEdit=r?r.id:null;$('#rT').textContent=r?'Research topic':'New research topic';$('#r_title').value=r?.title||'';$('#r_cat').value=r?.cat||'Machinery';$('#r_pri').value=String(r?.pri||2);$('#r_rem').value=r?.remind||'';$('#r_status').value=r?.status||'todo';$('#r_why').value=r?.why||'';$('#r_find').value=r?.findings||'';$('#r_links').value=r?.links||'';$('#r_lprev').innerHTML=linkCards(r?.links||'');$('#r_del').style.display=r?'':'none';closePal();$('#rmodal').classList.add('on');setTimeout(()=>$('#r_title').focus(),20)}
 $('#resF').addEventListener('submit',e=>{e.preventDefault();const old=res.find(x=>x.id===rEdit);const r={id:rEdit||('r'+Date.now().toString(36)),title:$('#r_title').value.trim(),cat:$('#r_cat').value,pri:+$('#r_pri').value,remind:$('#r_rem').value,status:$('#r_status').value,why:$('#r_why').value.trim(),findings:$('#r_find').value.trim(),links:$('#r_links').value.trim()};
  if(!r.title)return;const i=res.findIndex(x=>x.id===r.id);if(i>=0)res[i]=r;else res.push(r);$('#rmodal').classList.remove('on');render();rwrite(r);log(`${old?'Updated':'New'} research: ${r.title}`)});
 $('#r_del').addEventListener('click',()=>{const r=res.find(x=>x.id===rEdit);if(!r)return;res=res.filter(x=>x!==r);$('#rmodal').classList.remove('on');render();write('research/'+r.id,null,true);toast('Research topic deleted',()=>{res.push(r);render();rwrite(r)})});
@@ -1192,6 +1222,7 @@ function wsMenu(){const sel=$('#wsSel');if(!sel)return;if(!me||me.role!=='admin'
 
 document.addEventListener('change',e=>{if(e.target.id==='wsSel')switchWs(e.target.value)});
 
+document.addEventListener('input',e=>{if(e.target.id==='r_links')$('#r_lprev').innerHTML=linkCards(e.target.value)});
 /* ---------- theme ---------- */
 function setTheme(t){const r=document.documentElement;if(t==='light'||t==='dark')r.dataset.theme=t;else{delete r.dataset.theme;t='auto'}try{localStorage.setItem('rt_theme',t)}catch(_){}
  $$('.thm [data-thm]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.thm===t))}
